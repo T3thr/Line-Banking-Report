@@ -9,6 +9,7 @@
     "lint": "next lint",
     "db:seed": "bun src/scripts/seed.ts",
     "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "tsx src/scripts/migrate.ts",
     "db:push": "bunx drizzle-kit push"
   },
   "dependencies": {
@@ -22,7 +23,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
-    "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.2",
     "lucide-react": "^0.518.0",
     "next": "15.3.4",
@@ -42,6 +42,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "tailwindcss": "^4",
