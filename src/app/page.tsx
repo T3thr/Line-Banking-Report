@@ -73,10 +73,25 @@ export default function BankIncomeDashboard() {
     const loadInitialData = async () => {
       try {
         const transactionsRes = await fetch('/api/transactions');
+        
+        if (!transactionsRes.ok) {
+          const errorData = await transactionsRes.json().catch(() => ({}));
+          console.error('Failed to fetch transactions:', transactionsRes.status, errorData);
+          setTransactions([]); // Set to empty array to prevent crash
+          return;
+        }
+
         const transactionsData = await transactionsRes.json();
-        setTransactions(transactionsData);
+        
+        if (Array.isArray(transactionsData)) {
+          setTransactions(transactionsData);
+        } else {
+          console.error('API response for transactions is not an array:', transactionsData);
+          setTransactions([]);
+        }
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error during initial data load:', error);
+        setTransactions([]);
       }
     };
     
