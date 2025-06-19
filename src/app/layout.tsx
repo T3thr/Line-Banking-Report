@@ -57,7 +57,7 @@ export default async function RootLayout({
             isDbConnected ? "Connected" : "Disconnected"
           }`}
           className={`fixed bottom-4 right-4 h-4 w-4 rounded-full ${
-            isDbConnected ? "bg-green-500" : "bg-red-500"
+            isDbConnected ? "bg-green-100" : "bg-red-500"
           }`}
         />
       </body>
