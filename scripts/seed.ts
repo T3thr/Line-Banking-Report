@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { db } from '../lib/db/connection';
-import { accounts, transactions } from '../lib/db/schema';
+import { db } from '../src/lib/db/connection';
+import { accounts, transactions } from '../src/lib/db/schema';
 import { sql } from 'drizzle-orm';
 
 async function main() {
