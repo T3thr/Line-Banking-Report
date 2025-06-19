@@ -41,7 +41,7 @@ export interface ParsedBankMessage {
         const match = message.match(pattern.regex);
         if (match) {
           const accountNumber = this.cleanAccountNumber(match[1]);
-          const type = this.normalizeTransactionType(match[2], pattern.bankName);
+          const type = this.normalizeTransactionType(match[2]);
           const amount = parseFloat(match[3].replace(/,/g, ''));
           
           return {
@@ -61,8 +61,7 @@ export interface ParsedBankMessage {
     }
   
     private static normalizeTransactionType(
-      type: string, 
-      bankName: string
+      type: string
     ): 'deposit' | 'withdraw' | 'transfer' {
       const lowerType = type.toLowerCase();
       

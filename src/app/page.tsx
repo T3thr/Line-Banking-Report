@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import Pusher from 'pusher-js';
 
@@ -13,15 +13,6 @@ interface Transaction {
   processed: boolean;
 }
 
-interface Account {
-  id: number;
-  accountNumber: string;
-  accountName: string;
-  bankName: string;
-  balance: string;
-  isActive: boolean;
-}
-
 interface DashboardStats {
   totalIncome: number;
   totalExpense: number;
@@ -29,9 +20,12 @@ interface DashboardStats {
   transactionCount: number;
 }
 
+interface NewTransactionPayload {
+  transaction: Transaction;
+}
+
 export default function BankIncomeDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,
     totalExpense: 0,
@@ -41,56 +35,7 @@ export default function BankIncomeDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  useEffect(() => {
-    // เชื่อมต่อ Pusher สำหรับ real-time updates
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    });
-
-    const channel = pusher.subscribe('transactions');
-    
-    channel.bind('new-transaction', (data: any) => {
-      setTransactions(prev => [data.transaction, ...prev.slice(0, 49)]);
-      setLastUpdate(new Date());
-    });
-
-    channel.bind('pusher:subscription_succeeded', () => {
-      setIsConnected(true);
-    });
-
-    // โหลดข้อมูลเริ่มต้น
-    loadInitialData();
-
-    return () => {
-      pusher.unsubscribe('transactions');
-      pusher.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (transactions.length > 0) {
-      calculateStats();
-    }
-  }, [transactions]);
-
-  const loadInitialData = async () => {
-    try {
-      const [transactionsRes, accountsRes] = await Promise.all([
-        fetch('/api/transactions'),
-        fetch('/api/accounts')
-      ]);
-      
-      const transactionsData = await transactionsRes.json();
-      const accountsData = await accountsRes.json();
-      
-      setTransactions(transactionsData);
-      setAccounts(accountsData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
-
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const totalIncome = transactions
       .filter(t => t.type === 'deposit')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -105,7 +50,49 @@ export default function BankIncomeDashboard() {
       netBalance: totalIncome - totalExpense,
       transactionCount: transactions.length
     });
-  };
+  }, [transactions]);
+
+  useEffect(() => {
+    // เชื่อมต่อ Pusher สำหรับ real-time updates
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    });
+
+    const channel = pusher.subscribe('transactions');
+    
+    channel.bind('new-transaction', (data: NewTransactionPayload) => {
+      setTransactions(prev => [data.transaction, ...prev.slice(0, 49)]);
+      setLastUpdate(new Date());
+    });
+
+    channel.bind('pusher:subscription_succeeded', () => {
+      setIsConnected(true);
+    });
+
+    // โหลดข้อมูลเริ่มต้น
+    const loadInitialData = async () => {
+      try {
+        const transactionsRes = await fetch('/api/transactions');
+        const transactionsData = await transactionsRes.json();
+        setTransactions(transactionsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    
+    loadInitialData();
+
+    return () => {
+      pusher.unsubscribe('transactions');
+      pusher.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (transactions.length > 0) {
+      calculateStats();
+    }
+  }, [transactions, calculateStats]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {

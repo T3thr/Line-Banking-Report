@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { transactions } from '@/lib/db/schema';
-import { eq, sum, count, gte } from 'drizzle-orm';
+import { sum, count, gte } from 'drizzle-orm';
 
 export async function GET() {
   try {
