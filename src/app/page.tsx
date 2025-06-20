@@ -1,3 +1,4 @@
+// app/page.tsx
 import { Transaction } from '@/lib/db/schema';
 import { DashboardClient, DashboardStats } from '@/components/DashboardClient';
 import { DateFilter } from '@/components/DateFilter';
@@ -41,14 +42,12 @@ async function getDashboardData(date?: string | null): Promise<{transactions: Tr
   }
 }
 
-export default async function BankIncomeDashboardPage({
-  searchParams,
-}: {
+// Updated to handle Promise-based searchParams in newer Next.js versions
+export default async function BankIncomeDashboardPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // Await the searchParams promise
-  const resolvedSearchParams = await searchParams;
-  const date = Array.isArray(resolvedSearchParams.date) ? resolvedSearchParams.date[0] : resolvedSearchParams.date;
+  const searchParams = await props.searchParams;
+  const date = Array.isArray(searchParams.date) ? searchParams.date[0] : searchParams.date;
   const { transactions, stats } = await getDashboardData(date);
   
   return (
