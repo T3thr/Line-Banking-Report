@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
-    let query = db
+    const query = db
       .select()
       .from(transactions)
       .orderBy(desc(transactions.timestamp));
