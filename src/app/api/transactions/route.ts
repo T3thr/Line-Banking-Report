@@ -1,16 +1,31 @@
 // app/api/transactions/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { transactions } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const allTransactions = await db
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+
+    let query = db
       .select()
       .from(transactions)
-      .orderBy(desc(transactions.timestamp))
-      .limit(100);
+      .orderBy(desc(transactions.timestamp));
+
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+      
+      query.where(sql`${transactions.timestamp} >= ${startDate} AND ${transactions.timestamp} <= ${endDate}`);
+    } else {
+      query.limit(100);
+    }
+
+    const allTransactions = await query;
 
     return NextResponse.json(allTransactions);
   } catch (error) {
