@@ -7,10 +7,9 @@ import { Suspense } from 'react';
 import { db } from '@/lib/db/connection';
 import { desc, sql } from 'drizzle-orm';
 
-// ย้าย Logic การดึงข้อมูลมาไว้ที่นี่โดยตรง เพื่อให้ Server Component เรียกใช้ได้เลย
+// Logic การดึงข้อมูลยังคงเหมือนเดิม (ถูกต้องและมีประสิทธิภาพ)
 async function getDashboardData(date?: string | null): Promise<{ transactions: Transaction[], stats: DashboardStats }> {
   try {
-    // --- Logic จาก /api/transactions ---
     const transactionQuery = db
       .select()
       .from(transactions)
@@ -22,21 +21,18 @@ async function getDashboardData(date?: string | null): Promise<{ transactions: T
       const endDate = new Date(date);
       endDate.setUTCHours(23, 59, 59, 999);
       
-      // การใช้ sql`` จาก Drizzle เป็นวิธีที่ปลอดภัยกว่า
       transactionQuery.where(sql`${transactions.timestamp} >= ${startDate} AND ${transactions.timestamp} <= ${endDate}`);
     } else {
-        // หากไม่มีวันที่ อาจจะแสดงแค่ 100 รายการล่าสุด
-        transactionQuery.limit(100);
+      transactionQuery.limit(100);
     }
     const fetchedTransactions = await transactionQuery;
 
-    // --- Logic จาก /api/stats ---
     const totalIncome = fetchedTransactions
       .filter(t => t.type === 'deposit')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0);
     
     const totalExpense = fetchedTransactions
-      .filter(t => t.type === 'withdraw' || t.type === 'transfer') // 'transfer' ควรนับเป็นรายจ่าย
+      .filter(t => t.type === 'withdraw' || t.type === 'transfer')
       .reduce((sum, t) => sum + parseFloat(t.amount), 0);
     
     const stats: DashboardStats = {
@@ -50,7 +46,6 @@ async function getDashboardData(date?: string | null): Promise<{ transactions: T
 
   } catch (error) {
     console.error("Failed to fetch initial data directly from database:", error);
-    // ในกรณีที่เกิดข้อผิดพลาด ให้คืนค่าว่างเพื่อไม่ให้หน้าเว็บพัง
     return { 
       transactions: [], 
       stats: { totalIncome: 0, totalExpense: 0, netBalance: 0, transactionCount: 0 } 
@@ -58,16 +53,20 @@ async function getDashboardData(date?: string | null): Promise<{ transactions: T
   }
 }
 
-// แก้ไข Interface ให้ถูกต้อง: searchParams เป็น object ธรรมดา
+// **แก้ไขจุดสำคัญ:** กลับไปใช้ Interface ที่ searchParams เป็น Promise
+// ตามที่ Vercel build environment ต้องการ
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key:string]: string | string[] | undefined }>;
 }
 
+
 export default async function BankIncomeDashboardPage({ searchParams }: PageProps) {
-  // ไม่ต้อง await searchParams แล้ว
-  const date = Array.isArray(searchParams.date) 
-    ? searchParams.date[0] 
-    : searchParams.date;
+  // **แก้ไขจุดสำคัญ:** ต้อง await อีกครั้ง เพราะ searchParams เป็น Promise
+  const resolvedSearchParams = await searchParams;
+
+  const date = Array.isArray(resolvedSearchParams.date) 
+    ? resolvedSearchParams.date[0] 
+    : resolvedSearchParams.date;
   
   const { transactions, stats } = await getDashboardData(date);
   
