@@ -1,4 +1,3 @@
-// app/page.tsx
 import { Transaction } from '@/lib/db/schema';
 import { DashboardClient, DashboardStats } from '@/components/DashboardClient';
 import { DateFilter } from '@/components/DateFilter';
@@ -7,23 +6,38 @@ import { Suspense } from 'react';
 // This function now fetches data from our API endpoints
 async function getDashboardData(date?: string | null): Promise<{transactions: Transaction[], stats: DashboardStats}> {
   try {
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
+    // สร้าง absolute URL สำหรับ server-side fetch
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'localhost:3000';
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${protocol}://${host}`;
     
     const dateQuery = date ? `?date=${date}` : '';
     const transactionsUrl = `${baseUrl}/api/transactions${dateQuery}`;
     const statsUrl = `${baseUrl}/api/stats${dateQuery}`;
     
+    console.log('Fetching from:', { transactionsUrl, statsUrl }); // Debug log
+    
     const [transactionsRes, statsRes] = await Promise.all([
-      fetch(transactionsUrl, { cache: 'no-store' }),
-      fetch(statsUrl, { cache: 'no-store' })
+      fetch(transactionsUrl, { 
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      fetch(statsUrl, { 
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
     ]);
     
     if (!transactionsRes.ok || !statsRes.ok) {
       console.error('Failed to fetch data:', { 
         transactionsStatus: transactionsRes.status,
-        statsStatus: statsRes.status
+        statsStatus: statsRes.status,
+        transactionsText: !transactionsRes.ok ? await transactionsRes.text() : null,
+        statsText: !statsRes.ok ? await statsRes.text() : null
       });
       throw new Error('Failed to fetch dashboard data');
     }
@@ -42,12 +56,18 @@ async function getDashboardData(date?: string | null): Promise<{transactions: Tr
   }
 }
 
-// Updated to handle Promise-based searchParams in newer Next.js versions
-export default async function BankIncomeDashboardPage(props: {
+// แก้ไข interface เพื่อรองรับ Next.js 15
+interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const date = Array.isArray(searchParams.date) ? searchParams.date[0] : searchParams.date;
+}
+
+export default async function BankIncomeDashboardPage({ searchParams }: PageProps) {
+  // Await searchParams promise สำหรับ Next.js 15
+  const resolvedSearchParams = await searchParams;
+  const date = Array.isArray(resolvedSearchParams.date) 
+    ? resolvedSearchParams.date[0] 
+    : resolvedSearchParams.date;
+  
   const { transactions, stats } = await getDashboardData(date);
   
   return (
