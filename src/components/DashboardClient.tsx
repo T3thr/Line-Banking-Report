@@ -5,7 +5,7 @@ import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, Refre
 import Pusher from 'pusher-js';
 import type { Transaction } from '@/lib/db/schema';
 
-interface DashboardStats {
+export interface DashboardStats {
   totalIncome: number;
   totalExpense: number;
   netBalance: number;

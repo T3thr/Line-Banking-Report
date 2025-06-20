@@ -4,6 +4,8 @@ import { db } from '@/lib/db/connection';
 import { transactions } from '@/lib/db/schema';
 import { desc, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,11 +18,11 @@ export async function GET(request: NextRequest) {
 
     if (date) {
       const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
+      startDate.setUTCHours(0, 0, 0, 0);
       const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      endDate.setUTCHours(23, 59, 59, 999);
       
-      query.where(sql`${transactions.timestamp} >= ${startDate} AND ${transactions.timestamp} <= ${endDate}`);
+      query.where(sql`${transactions.timestamp} >= ${startDate.toISOString()} AND ${transactions.timestamp} <= ${endDate.toISOString()}`);
     } else {
       query.limit(100);
     }

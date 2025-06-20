@@ -1,46 +1,43 @@
 import { db } from '@/lib/db/connection';
-import { transactions } from '@/lib/db/schema';
+import { Transaction, transactions } from '@/lib/db/schema';
 import { desc, sql } from 'drizzle-orm';
-import { DashboardClient } from '@/components/DashboardClient';
+import { DashboardClient, DashboardStats } from '@/components/DashboardClient';
 import { DateFilter } from '@/components/DateFilter';
 import { Suspense } from 'react';
 
-async function getTransactionsAndStats(date?: string | null) {
+// This function now fetches data from our API endpoints
+async function getDashboardData(date?: string | null): Promise<{transactions: Transaction[], stats: DashboardStats}> {
   try {
-    const query = db.select().from(transactions).orderBy(desc(transactions.timestamp));
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
 
-    if (date) {
-      const startDate = new Date(date);
-      startDate.setUTCHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setUTCHours(23, 59, 59, 999);
-      
-      query.where(sql`${transactions.timestamp} >= ${startDate.toISOString()} AND ${transactions.timestamp} <= ${endDate.toISOString()}`);
-    } else {
-      query.limit(100);
+    const dateQuery = date ? `?date=${date}` : '';
+
+    const transactionsUrl = `${baseUrl}/api/transactions${dateQuery}`;
+    const statsUrl = `${baseUrl}/api/stats${dateQuery}`;
+
+    const [transactionsRes, statsRes] = await Promise.all([
+      fetch(transactionsUrl, { cache: 'no-store' }),
+      fetch(statsUrl, { cache: 'no-store' })
+    ]);
+
+    if (!transactionsRes.ok || !statsRes.ok) {
+      console.error('Failed to fetch data:', { 
+        transactionsStatus: transactionsRes.status,
+        statsStatus: statsRes.status
+      });
+      throw new Error('Failed to fetch dashboard data');
     }
 
-    const fetchedTransactions = await query;
+    const transactions: Transaction[] = await transactionsRes.json();
+    const stats: DashboardStats = await statsRes.json();
     
-    const totalIncome = fetchedTransactions
-      .filter(t => t.type === 'deposit')
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    
-    const totalExpense = fetchedTransactions
-      .filter(t => t.type === 'withdraw')
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    
-    const stats = {
-      totalIncome,
-      totalExpense,
-      netBalance: totalIncome - totalExpense,
-      transactionCount: fetchedTransactions.length
-    };
-
-    return { transactions: fetchedTransactions, stats };
+    return { transactions, stats };
 
   } catch (error) {
-    console.error("Failed to fetch initial data:", error);
+    console.error("Failed to fetch initial data from API:", error);
+    // Return empty state
     return { 
       transactions: [], 
       stats: { totalIncome: 0, totalExpense: 0, netBalance: 0, transactionCount: 0 } 
@@ -48,15 +45,13 @@ async function getTransactionsAndStats(date?: string | null) {
   }
 }
 
-export default async function BankIncomeDashboardPage(/*
-  Temporarily remove props for diagnostics
-  {
+export default async function BankIncomeDashboardPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
-}*/) {
-  // For diagnostics, we ignore searchParams and fetch default data
-  const { transactions, stats } = await getTransactionsAndStats(null);
+}) {
+  const date = Array.isArray(searchParams.date) ? searchParams.date[0] : searchParams.date;
+  const { transactions, stats } = await getDashboardData(date);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
