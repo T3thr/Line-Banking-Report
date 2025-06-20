@@ -5,7 +5,7 @@ import { DashboardClient } from './DashboardClient';
 
 async function getTransactionsAndStats(searchParams: { date?: string | null }) {
   try {
-    const { date } = await searchParams;
+    const date = searchParams?.date;
     const query = db.select().from(transactions).orderBy(desc(transactions.timestamp));
 
     if (date) {
