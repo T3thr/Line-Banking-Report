@@ -46,6 +46,7 @@ export default async function BankIncomeDashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  // Await the searchParams promise
   const resolvedSearchParams = await searchParams;
   const date = Array.isArray(resolvedSearchParams.date) ? resolvedSearchParams.date[0] : resolvedSearchParams.date;
   const { transactions, stats } = await getDashboardData(date);
