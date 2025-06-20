@@ -48,14 +48,15 @@ async function getTransactionsAndStats(date?: string | null) {
   }
 }
 
-export default async function BankIncomeDashboardPage({
+export default async function BankIncomeDashboardPage(/*
+  Temporarily remove props for diagnostics
+  {
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  // Handle case where searchParams.date could be an array or undefined
-  const date = Array.isArray(searchParams.date) ? searchParams.date[0] : searchParams.date;
-  const { transactions, stats } = await getTransactionsAndStats(date);
+}*/) {
+  // For diagnostics, we ignore searchParams and fetch default data
+  const { transactions, stats } = await getTransactionsAndStats(null);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
