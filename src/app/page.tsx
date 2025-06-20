@@ -1,6 +1,6 @@
 // src/app/page.tsx
 
-import { Transaction, transactions, accounts } from '@/lib/db/schema';
+import { Transaction, transactions } from '@/lib/db/schema';
 import { DashboardClient, DashboardStats } from '@/components/DashboardClient';
 import { DateFilter } from '@/components/DateFilter';
 import { Suspense } from 'react';
