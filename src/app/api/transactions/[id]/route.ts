@@ -17,13 +17,13 @@ const pusher = new Pusher({
 });
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
-
   try {
+    const transactionId = parseInt(params.id, 10);
+
     // ลบรายการธุรกรรมจากฐานข้อมูล
     const result = await db
       .delete(transactions)
-      .where(eq(transactions.id, Number(id)))
+      .where(eq(transactions.id, transactionId))
       .returning();
 
     // ตรวจสอบว่ามีการลบรายการหรือไม่
@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // ส่งการอัปเดตแบบ real-time ผ่าน Pusher
     await pusher.trigger('transactions', 'delete-transaction', {
-      transactionId: Number(id),
+      transactionId,
     });
 
     return NextResponse.json({ message: 'ลบธุรกรรมสำเร็จ' }, { status: 200 });
