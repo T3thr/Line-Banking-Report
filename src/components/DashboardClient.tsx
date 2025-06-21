@@ -359,11 +359,13 @@ export function DashboardClient({ initialTransactions, initialStats }: Dashboard
             paginatedTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="p-4 hover:bg-muted/50 transition-colors flex items-center space-x-4"
+                className="p-4 hover:bg-muted/50 transition-colors flex items-center space-x-4 relative"
               >
+                {/* ไอคอนธุรกรรม */}
                 <div className="p-2 bg-muted rounded-full">
                   {getTransactionIcon(transaction.type)}
                 </div>
+                {/* ข้อมูลธุรกรรม */}
                 <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
                   <div className="sm:col-span-1">
                     <p className="font-semibold text-foreground">
@@ -381,7 +383,7 @@ export function DashboardClient({ initialTransactions, initialStats }: Dashboard
                     <p>{transaction.description || 'ไม่มีรายละเอียด'}</p>
                     <p className="text-xs">{formatDate(transaction.timestamp)}</p>
                   </div>
-                  <div className="sm:col-span-1 flex items-center justify-end gap-2">
+                  <div className="sm:col-span-1 flex items-center justify-end gap-2 sm:gap-2">
                     <p
                       className={`text-lg font-bold text-right ${
                         transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
@@ -390,15 +392,27 @@ export function DashboardClient({ initialTransactions, initialStats }: Dashboard
                       {transaction.type === 'deposit' ? '+' : '-'}
                       {formatCurrency(parseFloat(transaction.amount))}
                     </p>
+                    {/* ปุ่มลบสำหรับ desktop */}
                     <button
                       onClick={() => handleDeleteTransaction(transaction.id)}
-                      className="p-2 rounded-full hover:bg-red-100 text-red-500 hover:text-red-700 transition-colors"
+                      className="p-2 rounded-full hover:bg-red-100 text-red-500 hover:text-red-700 transition-colors hidden sm:block"
                       aria-label={`ลบธุรกรรม ${transaction.id}`}
                       title="ลบธุรกรรม"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
+                {/* ปุ่มลบสำหรับ mobile */}
+                <div className="absolute bottom-2 right-2 sm:hidden">
+                  <button
+                    onClick={() => handleDeleteTransaction(transaction.id)}
+                    className="p-2 rounded-full hover:bg-red-100 text-red-500 hover:text-red-700 transition-colors"
+                    aria-label={`ลบธุรกรรม ${transaction.id}`}
+                    title="ลบธุรกรรม"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
             ))
