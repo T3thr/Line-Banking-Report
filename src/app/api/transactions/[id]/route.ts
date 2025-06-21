@@ -16,34 +16,39 @@ const pusher = new Pusher({
   useTLS: true,
 });
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const transactionId = parseInt(params.id, 10);
-
-  // Check if transactionId is valid
-  if (isNaN(transactionId)) {
-    return NextResponse.json({ error: 'Invalid transaction ID' }, { status: 400 });
-  }
-
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    // Delete the transaction from the database
+    // รอการแก้ไข params จาก Promise
+    const { id } = await context.params;
+    const transactionId = parseInt(id, 10);
+
+    // ตรวจสอบว่า ID เป็นตัวเลขที่ถูกต้อง
+    if (isNaN(transactionId)) {
+      return NextResponse.json({ error: 'รหัสธุรกรรมไม่ถูกต้อง' }, { status: 400 });
+    }
+
+    // ลบรายการธุรกรรมจากฐานข้อมูล
     const result = await db
       .delete(transactions)
       .where(eq(transactions.id, transactionId))
       .returning();
 
-    // Check if the transaction was deleted
+    // ตรวจสอบว่ามีการลบรายการหรือไม่
     if (result.length === 0) {
-      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+      return NextResponse.json({ error: 'ไม่พบธุรกรรม' }, { status: 404 });
     }
 
-    // Send real-time update via Pusher
+    // ส่งการอัปเดทแบบ real-time ผ่าน Pusher
     await pusher.trigger('transactions', 'delete-transaction', {
       transactionId,
     });
 
-    return NextResponse.json({ message: 'Transaction deleted successfully' }, { status: 200 });
+    return NextResponse.json({ message: 'ลบธุรกรรมสำเร็จ' }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting transaction:', error);
-    return NextResponse.json({ error: 'Failed to delete transaction' }, { status: 500 });
+    console.error('เกิดข้อผิดพลาดในการลบธุรกรรม:', error);
+    return NextResponse.json({ error: 'ไม่สามารถลบธุรกรรมได้' }, { status: 500 });
   }
 }
